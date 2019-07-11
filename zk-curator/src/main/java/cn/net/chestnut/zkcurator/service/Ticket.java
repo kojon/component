@@ -12,9 +12,12 @@ public class Ticket {
     private static AtomicInteger ticket = new AtomicInteger(20);
 
     public static String use() {
+        if(ticket.get()==0){
+            return null;
+        }
         int ticketNo = (20 - (ticket.decrementAndGet()));
         try {
-            Thread.sleep(800);
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class TicketService {
 
-
     //10分钟后活动结束
     private Date expireTime;
 
@@ -35,30 +34,29 @@ public class TicketService {
     }
 
     private void getAfterTime() {
-        LocalDateTime localDateTime=LocalDateTime.now().plusMinutes(10);
+        LocalDateTime localDateTime = LocalDateTime.now().plusMinutes(10);
         ZoneId zone = ZoneId.systemDefault();
         Instant instant = localDateTime.atZone(zone).toInstant();
-        expireTime=Date.from(instant);
+        expireTime = Date.from(instant);
     }
 
     public String start() {
-        if (Ticket.getCount() > 0) {
-            ZkTools zk=ZkTools.getZkTools();
-            try {
-                if(new Date().compareTo(expireTime)>0 && zk.getClient().getState()!=CuratorFrameworkState.STOPPED){
-                    zk.closeQuietly();
-                    return "活动已过期";
-                }else{
-                    if (zk.getClient().getState() == CuratorFrameworkState.LATENT) {
-                        zk.getClient().start();
-                    }
-                    return doWork(zk.getLock(), 10, TimeUnit.SECONDS);
+        ZkTools zk = ZkTools.getZkTools();
+        try {
+            if (new Date().compareTo(expireTime) > 0 && zk.getClient().getState() != CuratorFrameworkState.STOPPED) {
+                zk.closeQuietly();
+                return "活动已过期";
+            } else {
+                if (zk.getClient().getState() == CuratorFrameworkState.LATENT) {
+                    zk.getClient().start();
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                e.printStackTrace();
+                ClientLock lock = new ClientLock(zk.getClient(), ZkTools.PATH, System.currentTimeMillis() + "");
+                return doWork(lock, 10, TimeUnit.SECONDS);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
 
